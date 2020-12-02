@@ -11,18 +11,39 @@ namespace J {
 		enumRot() {
 			current = start;
 		}
-		enumname rot(bool right = true) {
+		enumRot rot(bool right = true) {
 			if (right) {
 				current = (current == max) ? min : (enumname)((int)current + 1);
 			}
 			else {
 				current = (current == min) ? max : (enumname)((int)current - 1);
 			}
-			return current;
+			return *this;
 		}
+
 		void reset() { current = start; }
 		enumname val() { return current; }
 		operator enumname() { return current; }
+
+		enumRot operator++(int) {
+			enumRot c = *this;
+			rot();
+			return c;
+		}
+		enumRot operator--(int) {
+			enumRot c = *this;
+			rot(false);
+			return c;
+		}
+
+		enumRot operator++() { return rot(); }
+		enumRot operator--() { return rot(false);}
+		enumRot operator=(enumname t) { return current = t; }
+
+		friend std::ostream& operator<<(std::ostream& os, const enumRot eT) {
+			os << (int)eT.current;
+			return os;
+		}
 	};
 }
 
