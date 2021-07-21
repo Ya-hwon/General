@@ -3,64 +3,67 @@
 #ifndef JTimer
 #define JTimer
 
+#define _TIMEELEMOUT(X) auto X = duration / std::chrono::X( 1 ); if ( X != 0 ) {std::cout << X << #X << " " ;} duration -= ( X * std::chrono::X( 1 ) )
+
 namespace J {
 	class Timer {
 
 	private:
-		std::chrono::time_point<std::chrono::steady_clock> start, finish;
-		std::chrono::duration<double> duration;
-		std::ostream& os;
-		bool quiet;
-		bool paused = 0;
-
+		std::chrono::time_point<std::chrono::high_resolution_clock> begin, end;
+		std::chrono::duration<long long, std::nano> duration;
+		bool paused;
+		bool RAII;
+		const char* name;
 	public:
-		Timer(bool silenced = 1, std::ostream& dings = std::cout) : os{ dings } {
-			duration = duration.zero();
-			quiet = silenced;
-			start = std::chrono::high_resolution_clock::now();
-			if(!quiet)os << "Timer started\n";
+		Timer( const char* name = "Timer", bool RAII = true ) : name( name ), RAII( RAII ) {
+			if ( RAII ) {
+				start();
+			}
 		}
 		~Timer() {
-			finish = std::chrono::high_resolution_clock::now();
-			duration = duration + (finish - start);
-			double ms = duration.count() * 1000.0;
-			if (!quiet)os << ms << "ms \n";
+			if ( RAII ) {
+				stop();
+			}
 		}
-		void end() {
-			this->~Timer();
+		void stop() {
+			end = std::chrono::high_resolution_clock::now();
+			duration = duration + ( end - begin );
+			std::cout << name << " stopped after ";
+			_TIMEELEMOUT( hours );
+			_TIMEELEMOUT( minutes );
+			_TIMEELEMOUT( seconds );
+			_TIMEELEMOUT( milliseconds );
+			_TIMEELEMOUT( microseconds );
+			_TIMEELEMOUT( nanoseconds );
 		}
-		double GetTime() {
-				finish = std::chrono::high_resolution_clock::now();
-				duration = duration + (finish - start);
-				double ms = duration.count() * 1000.0;
-				start = std::chrono::high_resolution_clock::now();
-				return ms;
+		long long GetTimeNs() {
+			end = std::chrono::high_resolution_clock::now();
+			duration = duration + ( end - begin );
+			begin = std::chrono::high_resolution_clock::now();
+			return duration.count();
 		}
-		void restart() {
-			finish = std::chrono::high_resolution_clock::now();
-			duration = duration + (finish - start);
-			double ms = duration.count() * 1000.0;
-			if (!quiet)os << ms << "ms \n";
-			if (!quiet)os << "Restarted\n";
+		void start() {
 			duration = duration.zero();
-			start = std::chrono::high_resolution_clock::now();
+			std::cout << name << " started\n";
+			begin = std::chrono::high_resolution_clock::now();
 		}
 		void pause() {
-			if (!paused) {
-				finish = std::chrono::high_resolution_clock::now();
-				duration = duration + (finish - start);
-				paused = 1;
-				if (!quiet)os << "Paused\n";
+			if ( !paused ) {
+				end = std::chrono::high_resolution_clock::now();
+				duration = duration + ( end - begin );
+				paused = true;
+				std::cout << name << " paused\n";
 			}
 		}
 		void resume() {
-			if (paused) {
-				start = std::chrono::high_resolution_clock::now();
-				paused = 0;
-				if (!quiet)os << "Resumed\n";
+			if ( paused ) {
+				paused = false;
+				std::cout << name << " resumed\n";
+				begin = std::chrono::high_resolution_clock::now();
 			}
 		}
 	};
 
 }
+
 #endif

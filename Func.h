@@ -24,31 +24,6 @@ namespace J {
 			index = (index<<13)^index;
 			return ((index*(index*index*15731+789221)+1376312589)&0x7fffffff);
 		}
-
-#ifdef JStr
-		//String overload of swap
-		template<> void swap(String& a, String& b) {
-			char * temp2 = new char[0];
-			temp2 = a._GetStr();
-			a._SetStr(b._GetStr());
-			b._SetStr(temp2);
-			a._SetLength(a.updateLength());
-			b._SetLength(b.updateLength());
-			return;
-		}
-#endif
-
-	unsigned int strlen(char * a) {
-		int x = 0;
-		for (; a[x] != '\0'; x++);
-		return x;
-	}
-
-	unsigned int strlen(const char * a) {
-		int x = 0;
-		for (; a[x] != '\0'; x++);
-		return x;
-	}
 }
 
 #endif
