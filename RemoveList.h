@@ -20,11 +20,12 @@ namespace J {
 		size_t allocSize;
 		size_t _size;
 		size_t writeIndex;
+		elem* previous;
 	public:
 		~RemoveList() {
 			delete[] _data;
 		}
-		RemoveList(const size_t& size) :allocSize(size), _size(0), writeIndex(0), _data(new elem[size]), first(_data) {
+		RemoveList(const size_t& size) :allocSize(size), _size(0), writeIndex(0), _data(new elem[size]), first(_data), previous(_data) {
 
 		}
 		void add(const T& value) {
@@ -40,11 +41,14 @@ namespace J {
 				_data = new_data;
 				first = new_data;
 			}
-			_data[writeIndex].next = (writeIndex == allocSize - 1) ? nullptr : (_data + writeIndex + 1);
+			previous->next = &_data[writeIndex];
+			previous = &_data[writeIndex];
+			_data[writeIndex].next = nullptr;
 			_data[writeIndex++]._data = value;
 			_size++;
 		}
 		size_t removeIf(const std::function<bool(const T&)>& filter) {
+			if (_size == 0)return 0;
 			size_t count = 0;
 			elem* current = first;
 			if (filter(current->_data)) {
@@ -64,6 +68,7 @@ namespace J {
 			return count;
 		}
 		void forEach(const std::function<void(T&)> function) {
+			if (_size == 0)return;
 			for (elem* current = first; current != nullptr; current = current->next) {
 				function(current->_data);
 			}
@@ -75,9 +80,10 @@ namespace J {
 			return _size;
 		}
 		[[nodiscard]] T* toArray() const {
+			if (_size == 0)return nullptr;
 			T* outArray = new T[_size];
-			size_t i = 0;
-			for (elem* current = first; i < _size; current = current->next, i++) {
+			elem* current = first;
+			for (size_t i = 0; current != nullptr; current = current->next, i++) {
 				outArray[i] = current->_data;
 			}
 		}
