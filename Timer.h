@@ -39,7 +39,7 @@ namespace J {
 			_TIMEELEMOUT( nanoseconds );
 			std::cout << std::endl;
 		}
-		long long GetTimeNs() {
+		long long ns() {
 			end = std::chrono::high_resolution_clock::now();
 			duration = duration + ( end - begin );
 			begin = std::chrono::high_resolution_clock::now();
