@@ -7,7 +7,7 @@
 
 namespace J {
 
-	template<typename T, bool resizable = false>
+	template<typename T, bool resizable = true>
 	class RemoveList {
 
 	private:
@@ -37,6 +37,7 @@ namespace J {
 					new_data[index]._data = current->_data;
 					new_data[index].next = new_data + index + 1;
 				}
+				previous = &new_data[index - 1];
 				delete[] _data;
 				_data = new_data;
 				first = new_data;
