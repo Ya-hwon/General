@@ -7,52 +7,63 @@
 
 namespace J {
 
-	template<typename T, bool resizable = true>
+	template<typename T, bool resizable = true, bool forceContiguousMemory = true>
 	class RemoveList {
 
 	private:
 		struct elem {
-			T _data;
+			T data;
 			elem* next;
 		};
-		elem* _data;
+		std::vector<elem*> deleteList;
+		elem* data;
 		elem* first;
-		size_t allocSize;
+		size_t _capacity;
+		size_t dataSize;
 		size_t _size;
 		size_t writeIndex;
 		elem* previous;
 	public:
 		~RemoveList() {
-			delete[] _data;
+			delete[] data;
+			if (!forceContiguousMemory)for (auto& elem : deleteList) delete[] elem;
 		}
-		RemoveList(const size_t& size) :allocSize(size), _size(0), writeIndex(0), _data(new elem[size]), first(_data), previous(_data) {
+		RemoveList(const size_t& size) :_capacity(size), dataSize(_capacity), _size(0), writeIndex(0), data(new elem[size]), first(data), previous(data) {
 
 		}
 		void add(const T& value) {
-			if (resizable && writeIndex == allocSize) {
-				allocSize *= 2;
-				elem* new_data = new elem[allocSize];
-				size_t index = 0;
-				for (elem* current = first; current != nullptr; current = current->next, index++) {
-					new_data[index]._data = current->_data;
-					new_data[index].next = new_data + index + 1;
+			if (resizable && writeIndex == dataSize) {
+				if (forceContiguousMemory) {
+					dataSize *= 2;
+					elem* newdata = new elem[dataSize];
+					size_t index = 0;
+					for (elem* current = first; current != nullptr; current = current->next, index++) {
+						newdata[index].data = current->data;
+						newdata[index].next = newdata + index + 1;
+					}
+					previous = &newdata[index - 1];
+					delete[] data;
+					data = newdata;
+					first = newdata;
+				} else {
+					dataSize = _capacity;
+					deleteList.push_back(data);
+					data = new elem[_capacity];
+					_capacity *= 2;
+					writeIndex = 0;
 				}
-				previous = &new_data[index - 1];
-				delete[] _data;
-				_data = new_data;
-				first = new_data;
 			}
-			previous->next = &_data[writeIndex];
-			previous = &_data[writeIndex];
-			_data[writeIndex].next = nullptr;
-			_data[writeIndex++]._data = value;
+			previous->next = &data[writeIndex];
+			previous = &data[writeIndex];
+			data[writeIndex].next = nullptr;
+			data[writeIndex++].data = value;
 			_size++;
 		}
 		size_t removeIf(const std::function<bool(const T&)>& filter) {
 			if (_size == 0)return 0;
 			size_t count = 0;
 			elem* current = first;
-			if (filter(current->_data)) {
+			if (filter(current->data)) {
 				first = current->next;
 				_size--;
 				count++;
@@ -60,7 +71,7 @@ namespace J {
 			elem* previous = current;
 			current = current->next;
 			for (; current != nullptr; previous = current, current = current->next) {
-				if (filter(current->_data)) {
+				if (filter(current->data)) {
 					previous->next = current->next;
 					count++;
 					_size--;
@@ -71,11 +82,12 @@ namespace J {
 		void forEach(const std::function<void(T&)> function) {
 			if (_size == 0)return;
 			for (elem* current = first; current != nullptr; current = current->next) {
-				function(current->_data);
+				function(current->data);
 			}
 		}
 		size_t capacity() const {
-			return allocSize;
+			if (forceContiguousMemory) return dataSize;
+			return _capacity;
 		}
 		size_t size() const {
 			return _size;
@@ -85,7 +97,7 @@ namespace J {
 			T* outArray = new T[_size];
 			elem* current = first;
 			for (size_t i = 0; current != nullptr; current = current->next, i++) {
-				outArray[i] = current->_data;
+				outArray[i] = current->data;
 			}
 		}
 	};

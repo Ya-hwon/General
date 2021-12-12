@@ -76,3 +76,5 @@ tree.query({ -80, 80, -80, 80 }, candidates);
 // 'candidates' now holds all previously inserted elements within the query envelope
 
 ```
+
+Don't attempt to query a tree that has not been built. After the tree has been built further calls to add start filling a secondary tree that can be made the primary tree by calling build again.
