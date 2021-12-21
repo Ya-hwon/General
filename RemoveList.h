@@ -62,20 +62,21 @@ namespace J {
 		size_t removeIf(const std::function<bool(const T&)>& filter) {
 			if (_size == 0)return 0;
 			size_t count = 0;
-			elem* current = first;
-			if (filter(current->data)) {
-				first = current->next;
+
+			while (filter(first->data)) {
+				first = first->next;
 				_size--;
 				count++;
 			}
-			elem* previous = current;
-			current = current->next;
-			for (; current != nullptr; previous = current, current = current->next) {
+
+			for (elem* previous = first, *current = first->next; current != nullptr; current = current->next) {
 				if (filter(current->data)) {
 					previous->next = current->next;
 					count++;
 					_size--;
+					continue;
 				}
+				previous = current;
 			}
 			return count;
 		}
