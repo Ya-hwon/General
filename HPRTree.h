@@ -20,7 +20,6 @@ namespace J {
 	constexpr size_t NODE_CAPACITY = 16;
 	constexpr size_t HILBERT_LEVEL = 12;
 	constexpr size_t H = constexpr_pow(2, HILBERT_LEVEL) - 1;
-	constexpr size_t ENV_SIZE = 4;
 
 	constexpr bool USE_RADIX_SORT = false;
 
@@ -140,80 +139,21 @@ namespace J {
 			indexGeom geom;
 			elemType data;
 		};
+
 		Envelope<coordType> extent;
 		std::vector<item> items;
-		std::vector<int> layerStartIndex;
+		std::vector<size_t> layerStartIndex;
 		Envelope<coordType>* nodeBounds;
 
 		size_t getLayerSize(const size_t& layerIndex) {
 			return layerStartIndex[layerIndex + 1] - layerStartIndex[layerIndex];
 		}
 
-		void queryNode(const size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
-			const size_t layerStart = layerStartIndex[layerIndex];
-			const size_t nodeIndex = layerStart + nodeOffset;
-			if (!queryEnvelope.intersects(nodeBounds[nodeIndex / 4])) return;
-			if (layerIndex == 0) {
-				const size_t childNodesOffset = nodeOffset / ENV_SIZE * NODE_CAPACITY;
-				queryItems(childNodesOffset, queryEnvelope, removeList);
-			} else {
-				const size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
-				queryNodeChildren(layerIndex - 1, childNodesOffset, queryEnvelope, removeList);
-			}
-		}
-
-		void queryItems(const size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
-			for (size_t i = 0; i < NODE_CAPACITY; i++) {
-				const size_t itemIndex = blockStart + i;
-				if (itemIndex >= items.size()) break;
-				item& currentItem = items[itemIndex];
-				if (queryEnvelope.intersects(currentItem.geom)) {
-					removeList.add(currentItem.data);
-				}
-			}
-		}
-
-		void queryNodeChildren(const size_t& layerIndex, const size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
-			const size_t layerStart = layerStartIndex[layerIndex];
-			const size_t layerEnd = layerStartIndex[layerIndex + 1];
-			for (int i = 0; i < NODE_CAPACITY; i++) {
-				const size_t nodeOffset = blockOffset + i * ENV_SIZE;
-				if (layerStart + nodeOffset >= layerEnd) break;
-				queryNode(layerIndex, nodeOffset, queryEnvelope, removeList);
-			}
-		}
-
-	public:
-		HPRTree() : nodeBounds(nullptr) {
-		}
-		~HPRTree() {
-			delete[] nodeBounds;
-		}
-		void reserve(const size_t& size) {
-			items.reserve(size);
-		}
-		void query(const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
-			if (!extent.intersects(queryEnvelope)) return;
-
-			const size_t layerIndex = layerStartIndex.size() - 2;
-			const size_t layerSize = getLayerSize(layerIndex);
-
-			for (size_t i = 0; i < layerSize; i += ENV_SIZE) {
-				queryNode(layerIndex, i, queryEnvelope, removeList);
-			}
-		}
-		void add(const elemType& elem, const indexGeom& geom) {
-			items.push_back({ geom, elem });
-			extent.expandToInclude(geom);
-		}
-		void build() {
-
-			//items.shrink_to_fit();
-
+		void sortItems() {
 			const coordType strideX = extent.width() / H;
 			const coordType strideY = extent.height() / H;
 
-			if (USE_RADIX_SORT) {
+			if constexpr (USE_RADIX_SORT) {
 
 				struct indexedItem {
 					item i;
@@ -272,6 +212,36 @@ namespace J {
 					return false;
 				});
 			}
+		}
+
+		void computeLeafNodes() {
+			for (size_t i = 0; i < layerStartIndex[1]; i++) {
+				for (size_t j = 0; j <= NODE_CAPACITY; j++) {
+					const size_t itemIndex = NODE_CAPACITY * i + j;
+					if (itemIndex >= items.size()) return;
+					nodeBounds[i].expandToInclude(items[itemIndex].geom);
+				}
+			}
+		}
+
+		void computeLayerNodes() {
+			for (size_t i = 1; i < layerStartIndex.size() - 1; i++) {
+				const size_t layerStart = layerStartIndex[i];
+				const size_t childLayerStart = layerStartIndex[i - 1];
+				const size_t layerSize = getLayerSize(i);
+				const size_t childLayerEnd = layerStart;
+				for (size_t j = 0; j < layerSize; j++) {
+					const size_t childStart = childLayerStart + NODE_CAPACITY * j;
+					for (size_t k = 0; k <= NODE_CAPACITY; k++) {
+						const size_t index = childStart + k;
+						if (index >= childLayerEnd) break;
+						nodeBounds[layerStart + j].expandToInclude(nodeBounds[index]);
+					}
+				}
+			}
+		}
+
+		void computeLayerStartIndices() {
 
 			size_t itemCount = items.size();
 			size_t index = 0;
@@ -286,38 +256,82 @@ namespace J {
 					itemCount++;
 				}
 
-				index = index + itemCount * ENV_SIZE;
-			} while (itemCount > 1);
+				index = index + itemCount;
+			} while (itemCount > 1);	// log16(itemCount) indices
+		}
 
-			//layerStartIndex.shrink_to_fit();
+		void queryNodeChildren(const size_t& layerIndex, const size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+			const size_t layerStart = layerStartIndex[layerIndex];
+			const size_t layerEnd = layerStartIndex[layerIndex + 1];
+			for (int i = 0; i < NODE_CAPACITY; i++) {
+				const size_t nodeOffset = blockOffset + i;
+				if (layerStart + nodeOffset >= layerEnd) return;
+				queryNode(layerIndex, nodeOffset, queryEnvelope, removeList);
+			}
+		}
 
-			const size_t nodeCount = layerStartIndex[layerStartIndex.size() - 1] / 4;
+		void queryItems(const size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+			for (size_t i = 0; i < NODE_CAPACITY; i++) {
+				const size_t itemIndex = blockStart + i;
+				if (itemIndex >= items.size()) return;
+				item& currentItem = items[itemIndex];
+				if (queryEnvelope.intersects(currentItem.geom)) {
+					removeList.add(currentItem.data);
+				}
+			}
+		}
+
+		void queryNode(const size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+			const size_t layerStart = layerStartIndex[layerIndex];
+			const size_t nodeIndex = layerStart + nodeOffset;
+			if (!queryEnvelope.intersects(nodeBounds[nodeIndex])) return;
+			if (layerIndex == 0) {
+				const size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
+				queryItems(childNodesOffset, queryEnvelope, removeList);
+			} else {
+				const size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
+				queryNodeChildren(layerIndex - 1, childNodesOffset, queryEnvelope, removeList);
+			}
+		}
+
+	public:
+		HPRTree() : nodeBounds(nullptr) {}
+		~HPRTree() {
+			delete[] nodeBounds;
+		}
+		void reserve(const size_t& size) {
+			items.reserve(size);
+		}
+		void query(const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+			if (!extent.intersects(queryEnvelope)) return;
+
+			const size_t layerIndex = layerStartIndex.size() - 2;
+			const size_t layerSize = getLayerSize(layerIndex);
+
+			for (size_t i = 0; i < layerSize; i++) {
+				queryNode(layerIndex, i, queryEnvelope, removeList);
+			}
+		}
+		void add(const elemType& elem, const indexGeom& geom) {
+			items.push_back({ geom, elem });
+			extent.expandToInclude(geom);
+		}
+		void build() {
+
+			//items.shrink_to_fit();	// might make sense as potentially very big
+
+			sortItems();
+
+			computeLayerStartIndices();
+
+			//layerStartIndex.shrink_to_fit();	//propably not a good idea as relatively small
+
+			const size_t nodeCount = layerStartIndex[layerStartIndex.size() - 1];
 
 			nodeBounds = new Envelope<coordType>[nodeCount];
 
-			for (size_t i = 0; i < layerStartIndex[1]; i++) {
-				for (size_t j = 0; j <= NODE_CAPACITY; j++) {
-					const size_t itemIndex = NODE_CAPACITY * i + j;
-					if (itemIndex >= items.size()) break;
-					const indexGeom& geom = items[itemIndex].geom;
-					nodeBounds[i].expandToInclude(geom);
-				}
-			}
-
-			for (size_t i = 1; i < layerStartIndex.size() - 1; i++) {
-				const size_t layerStart = layerStartIndex[i] / 4;
-				const size_t childLayerStart = layerStartIndex[i - 1] / 4;
-				const size_t layerSize = getLayerSize(i);
-				const size_t childLayerEnd = layerStart;
-				for (size_t j = 0; j < layerSize; j++) {
-					const size_t childStart = childLayerStart + NODE_CAPACITY * j;
-					for (size_t k = 0; k <= NODE_CAPACITY; k++) {
-						const size_t index = childStart + k;
-						if (index >= childLayerEnd) break;
-						nodeBounds[layerStart + j].expandToInclude(nodeBounds[index]);
-					}
-				}
-			}
+			computeLeafNodes();
+			computeLayerNodes();
 		}
 	};
 }
