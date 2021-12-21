@@ -77,4 +77,4 @@ tree.query({ -80, 80, -80, 80 }, candidates);
 
 ```
 
-Don't attempt to query a tree that has not been built. After the tree has been built further calls to add start filling a secondary tree that can be made the primary tree by calling build again.
+Don't attempt to query a tree that has not been built, do not attempt to build a tree twice, don't add items to an already built tree
