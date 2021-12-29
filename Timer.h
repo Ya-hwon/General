@@ -37,7 +37,7 @@ namespace J {
 			_TIMEELEMOUT( milliseconds );
 			_TIMEELEMOUT( microseconds );
 			_TIMEELEMOUT( nanoseconds );
-			std::cout << std::endl;
+			std::cout << '\n';
 		}
 		long long ns() {
 			end = std::chrono::high_resolution_clock::now();
