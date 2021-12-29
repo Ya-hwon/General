@@ -7,7 +7,7 @@
 
 namespace J {
 
-	template<typename T, bool resizable = true, bool forceContiguousMemory = true>
+	template<typename T, bool resizable = true>
 	class RemoveList {
 
 	private:
@@ -15,27 +15,24 @@ namespace J {
 			T data;
 			elem* next;
 		};
-		std::vector<elem*> deleteList;
 		elem* data;
 		elem* first;
 		size_t _capacity;
-		size_t dataSize;
 		size_t _size;
 		size_t writeIndex;
 		elem* previous;
 	public:
 		~RemoveList() {
 			delete[] data;
-			if (!forceContiguousMemory)for (auto& elem : deleteList) delete[] elem;
 		}
-		RemoveList(const size_t& size) :_capacity(size), dataSize(_capacity), _size(0), writeIndex(0), data(new elem[size]), first(data), previous(data) {
+		RemoveList(const size_t& size) : _capacity(size), _size(0), writeIndex(0), data(new elem[size]), first(data), previous(data) {
 
 		}
 		void add(const T& value) {
-			if (resizable && writeIndex == dataSize) {
-				if (forceContiguousMemory) {
-					dataSize *= 2;
-					elem* newdata = new elem[dataSize];
+			if constexpr (resizable) {
+				if (writeIndex == _capacity) {
+					_capacity *= 2;
+					elem* newdata = new elem[_capacity];
 					size_t index = 0;
 					for (elem* current = first; current != nullptr; current = current->next, index++) {
 						newdata[index].data = current->data;
@@ -45,12 +42,6 @@ namespace J {
 					delete[] data;
 					data = newdata;
 					first = newdata;
-				} else {
-					dataSize = _capacity;
-					deleteList.push_back(data);
-					data = new elem[_capacity];
-					_capacity *= 2;
-					writeIndex = 0;
 				}
 			}
 			previous->next = &data[writeIndex];
@@ -59,27 +50,26 @@ namespace J {
 			data[writeIndex++].data = value;
 			_size++;
 		}
-		size_t removeIf(const std::function<bool(const T&)>& filter) {
-			if (_size == 0)return 0;
-			size_t count = 0;
+		void removeIf(const std::function<bool(const T&)>& filter) {
+			if (_size == 0)return;
 
 			while (filter(first->data)) {
 				first = first->next;
 				_size--;
-				count++;
+				if (!first) return;
 			}
 
 			for (elem* previous = first, *current = first->next; current != nullptr; current = current->next) {
 				if (filter(current->data)) {
 					previous->next = current->next;
-					count++;
 					_size--;
 					continue;
 				}
 				previous = current;
 			}
-			return count;
+			return;
 		}
+
 		void forEach(const std::function<void(T&)> function) {
 			if (_size == 0)return;
 			for (elem* current = first; current != nullptr; current = current->next) {
@@ -87,7 +77,6 @@ namespace J {
 			}
 		}
 		size_t capacity() const {
-			if (forceContiguousMemory) return dataSize;
 			return _capacity;
 		}
 		size_t size() const {
