@@ -316,9 +316,9 @@ namespace J {
 			items.push_back({ geom, elem });
 			extent.expandToInclude(geom);
 		}
-		void build() {
+		void build(const bool shrinkToFit = false) {
 
-			//items.shrink_to_fit();	// might make sense as potentially very big
+			if (shrinkToFit)items.shrink_to_fit();	// might make sense as potentially very big
 
 			sortItems();
 
