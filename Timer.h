@@ -8,22 +8,22 @@
 #define _TIMEELEMOUT(X) auto X = duration / std::chrono::X( 1 ); if ( X != 0 ) {std::cout << X << #X << " " ;} duration -= ( X * std::chrono::X( 1 ) )
 
 namespace J {
+	template<bool RAII = true>
 	class Timer {
 
 	private:
 		std::chrono::time_point<std::chrono::high_resolution_clock> begin, end;
 		std::chrono::duration<long long, std::nano> duration;
 		bool paused;
-		bool RAII;
 		const char* name;
 	public:
-		Timer( const char* name = "Timer", bool RAII = true ) : name( name ), RAII( RAII ) {
-			if ( RAII ) {
+		Timer( const char* name = "Timer") : name( name ) {
+			if constexpr ( RAII ) {
 				start();
 			}
 		}
 		~Timer() {
-			if ( RAII ) {
+			if constexpr ( RAII ) {
 				stop();
 			}
 		}
