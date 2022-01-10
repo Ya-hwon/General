@@ -21,8 +21,6 @@ namespace J {
 	constexpr size_t HILBERT_LEVEL = 12;
 	constexpr size_t H = constexpr_pow(2, HILBERT_LEVEL) - 1;
 
-	constexpr bool USE_RADIX_SORT = false;
-
 	typedef double defaultCoordType;
 
 	template<typename numberType = defaultCoordType>
@@ -145,7 +143,7 @@ namespace J {
 		std::vector<size_t> layerStartIndex;
 		Envelope<coordType>* nodeBounds;
 
-		size_t getLayerSize(const size_t& layerIndex) {
+		size_t getLayerSize(const size_t& layerIndex) const {
 			return layerStartIndex[layerIndex + 1] - layerStartIndex[layerIndex];
 		}
 
@@ -153,65 +151,22 @@ namespace J {
 			const coordType strideX = extent.width() / H;
 			const coordType strideY = extent.height() / H;
 
-			if constexpr (USE_RADIX_SORT) {
+			const coordType extentMinX = extent.minX();
 
-				struct indexedItem {
-					item i;
-					size_t index;
-				};
+			std::sort(items.begin(), items.end(), [&](const item& lhs, const item& rhs) {
 
-				std::vector<indexedItem> indexedItems;
-				indexedItems.reserve(items.size());
+				const int xlhs = (int)((lhs.geom.midX() - extentMinX) / strideX);
+				const int ylhs = (int)((lhs.geom.midY() - extentMinX) / strideY);
 
-				size_t max = 0;
+				const int xrhs = (int)((rhs.geom.midX() - extentMinX) / strideX);
+				const int yrhs = (int)((rhs.geom.midY() - extentMinX) / strideY);
 
-				for (size_t i = 0; i < items.size(); i++) {
-					const size_t index = hilbertXYToIndex(HILBERT_LEVEL, (int)((items[i].geom.midX() - extent.minX()) / strideX), (int)((items[i].geom.midY() - extent.minX()) / strideY));
-					if (index > max)max = index;
-					indexedItems.push_back({ items[i], index });
-				}
+				const int indexlhs = hilbertXYToIndex(HILBERT_LEVEL, xlhs, ylhs);
+				const int indexrhs = hilbertXYToIndex(HILBERT_LEVEL, xrhs, yrhs);
 
-				constexpr size_t packing = 12;	// im leaving this here for now because it may be sensible to be relative to #items?
-				constexpr size_t radix = 1 << packing;
-
-				size_t maxSteps = 0;
-				while (max > 0) {
-					maxSteps++;
-					max >>= packing;
-				}
-				for (size_t i = 0; i < maxSteps; i++) {
-					std::queue<indexedItem> buckets[radix];
-
-					for (auto& indexedItem : indexedItems) {
-						buckets[(indexedItem.index >> (i * packing)) % radix].push(indexedItem);
-					}
-
-					size_t index = 0;
-
-					for (auto& bucket : buckets) {
-						while (!bucket.empty()) {
-							(indexedItems)[index++] = bucket.front();
-							bucket.pop();
-						}
-					}
-				}
-				for (size_t i = 0; i < indexedItems.size(); i++)items[i] = (indexedItems)[i].i;
-			} else {
-				std::sort(items.begin(), items.end(), [&](const item& lhs, const item& rhs) {
-
-					const int xlhs = (int)((lhs.geom.midX() - extent.minX()) / strideX);
-					const int ylhs = (int)((lhs.geom.midY() - extent.minX()) / strideY);
-
-					const int xrhs = (int)((rhs.geom.midX() - extent.minX()) / strideX);
-					const int yrhs = (int)((rhs.geom.midY() - extent.minX()) / strideY);
-
-					const int indexlhs = hilbertXYToIndex(HILBERT_LEVEL, xlhs, ylhs);
-					const int indexrhs = hilbertXYToIndex(HILBERT_LEVEL, xrhs, yrhs);
-
-					if (indexlhs < indexrhs) return true;
-					return false;
-				});
-			}
+				if (indexlhs < indexrhs) return true;
+				return false;
+			});
 		}
 
 		void computeLeafNodes() {
@@ -260,7 +215,7 @@ namespace J {
 			} while (itemCount > 1);	// log16(itemCount) indices
 		}
 
-		void queryNodeChildren(const size_t& layerIndex, const size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+		void queryNodeChildren(const size_t& layerIndex, const size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			const size_t layerStart = layerStartIndex[layerIndex];
 			const size_t layerEnd = layerStartIndex[layerIndex + 1];
 			for (int i = 0; i < NODE_CAPACITY; i++) {
@@ -270,18 +225,18 @@ namespace J {
 			}
 		}
 
-		void queryItems(const size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+		void queryItems(const size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			for (size_t i = 0; i < NODE_CAPACITY; i++) {
 				const size_t itemIndex = blockStart + i;
 				if (itemIndex >= items.size()) return;
-				item& currentItem = items[itemIndex];
+				const item& currentItem = items[itemIndex];
 				if (queryEnvelope.intersects(currentItem.geom)) {
 					removeList.add(currentItem.data);
 				}
 			}
 		}
 
-		void queryNode(const size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+		void queryNode(const size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			const size_t layerStart = layerStartIndex[layerIndex];
 			const size_t nodeIndex = layerStart + nodeOffset;
 			if (!queryEnvelope.intersects(nodeBounds[nodeIndex])) return;
@@ -302,7 +257,7 @@ namespace J {
 		void reserve(const size_t& size) {
 			items.reserve(size);
 		}
-		void query(const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) {
+		void query(const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			if (!extent.intersects(queryEnvelope)) return;
 
 			const size_t layerIndex = layerStartIndex.size() - 2;
@@ -315,6 +270,9 @@ namespace J {
 		void add(const elemType& elem, const indexGeom& geom) {
 			items.push_back({ geom, elem });
 			extent.expandToInclude(geom);
+		}
+		double avgEntries() {	// maybe something like this makes sense to guesstimate how many entries are in a given envelope?
+			return items.size() / (extent.height() * extent.width());
 		}
 		void build(const bool shrinkToFit = false) {
 
