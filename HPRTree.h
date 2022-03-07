@@ -2,7 +2,7 @@
 
 #include "RemoveList.h"
 #include "external/hilbert_curves.h"
-#include <Timer.h>
+#include "Timer.h"
 #include <limits>
 #include <vector>
 #include <mutex>
@@ -13,13 +13,13 @@
 namespace J {
 
 	template <typename T>
-	constexpr T constexpr_pow(T num, size_t pow) {
+	constexpr T constexpr_pow(T num, std::size_t pow) {
 		return pow == 0 ? 1 : num * constexpr_pow(num, pow - 1);
 	}
 
-	constexpr size_t NODE_CAPACITY = 16;
-	constexpr size_t HILBERT_LEVEL = 12;
-	constexpr size_t H = constexpr_pow(2, HILBERT_LEVEL) - 1;
+	constexpr std::size_t NODE_CAPACITY = 16;
+	constexpr std::size_t HILBERT_LEVEL = 12;
+	constexpr std::size_t H = constexpr_pow(2, HILBERT_LEVEL) - 1;
 
 	typedef double defaultCoordType;
 
@@ -170,9 +170,9 @@ namespace J {
 		}
 
 		void computeLeafNodes() {
-			for (size_t i = 0; i < layerStartIndex[1]; i++) {
-				for (size_t j = 0; j <= NODE_CAPACITY; j++) {
-					const size_t itemIndex = NODE_CAPACITY * i + j;
+			for (std::size_t i = 0; i < layerStartIndex[1]; i++) {
+				for (std::size_t j = 0; j <= NODE_CAPACITY; j++) {
+					const std::size_t itemIndex = NODE_CAPACITY * i + j;
 					if (itemIndex >= items.size()) return;
 					nodeBounds[i].expandToInclude(items[itemIndex].geom);
 				}
@@ -180,15 +180,15 @@ namespace J {
 		}
 
 		void computeLayerNodes() {
-			for (size_t i = 1; i < layerStartIndex.size() - 1; i++) {
-				const size_t layerStart = layerStartIndex[i];
-				const size_t childLayerStart = layerStartIndex[i - 1];
-				const size_t layerSize = getLayerSize(i);
-				const size_t childLayerEnd = layerStart;
-				for (size_t j = 0; j < layerSize; j++) {
-					const size_t childStart = childLayerStart + NODE_CAPACITY * j;
-					for (size_t k = 0; k <= NODE_CAPACITY; k++) {
-						const size_t index = childStart + k;
+			for (std::size_t i = 1; i < layerStartIndex.size() - 1; i++) {
+				const std::size_t layerStart = layerStartIndex[i];
+				const std::size_t childLayerStart = layerStartIndex[i - 1];
+				const std::size_t layerSize = getLayerSize(i);
+				const std::size_t childLayerEnd = layerStart;
+				for (std::size_t j = 0; j < layerSize; j++) {
+					const std::size_t childStart = childLayerStart + NODE_CAPACITY * j;
+					for (std::size_t k = 0; k <= NODE_CAPACITY; k++) {
+						const std::size_t index = childStart + k;
 						if (index >= childLayerEnd) break;
 						nodeBounds[layerStart + j].expandToInclude(nodeBounds[index]);
 					}
@@ -198,14 +198,14 @@ namespace J {
 
 		void computeLayerStartIndices() {
 
-			size_t itemCount = items.size();
-			size_t index = 0;
+			std::size_t itemCount = items.size();
+			std::size_t index = 0;
 
 			do {
 				layerStartIndex.push_back(index);
 
-				const size_t mult = itemCount / NODE_CAPACITY;
-				const size_t total = mult * NODE_CAPACITY;
+				const std::size_t mult = itemCount / NODE_CAPACITY;
+				const std::size_t total = mult * NODE_CAPACITY;
 				itemCount = mult;
 				if (total != itemCount) {
 					itemCount++;
@@ -215,19 +215,19 @@ namespace J {
 			} while (itemCount > 1);	// log16(itemCount) indices
 		}
 
-		void queryNodeChildren(const size_t& layerIndex, const size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
-			const size_t layerStart = layerStartIndex[layerIndex];
-			const size_t layerEnd = layerStartIndex[layerIndex + 1];
+		void queryNodeChildren(const std::size_t& layerIndex, const std::size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
+			const std::size_t layerStart = layerStartIndex[layerIndex];
+			const std::size_t layerEnd = layerStartIndex[layerIndex + 1];
 			for (int i = 0; i < NODE_CAPACITY; i++) {
-				const size_t nodeOffset = blockOffset + i;
+				const std::size_t nodeOffset = blockOffset + i;
 				if (layerStart + nodeOffset >= layerEnd) return;
 				queryNode(layerIndex, nodeOffset, queryEnvelope, removeList);
 			}
 		}
 
-		void queryItems(const size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
-			for (size_t i = 0; i < NODE_CAPACITY; i++) {
-				const size_t itemIndex = blockStart + i;
+		void queryItems(const std::size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
+			for (std::size_t i = 0; i < NODE_CAPACITY; i++) {
+				const std::size_t itemIndex = blockStart + i;
 				if (itemIndex >= items.size()) return;
 				const item& currentItem = items[itemIndex];
 				if (queryEnvelope.intersects(currentItem.geom)) {
@@ -236,15 +236,15 @@ namespace J {
 			}
 		}
 
-		void queryNode(const size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
-			const size_t layerStart = layerStartIndex[layerIndex];
-			const size_t nodeIndex = layerStart + nodeOffset;
+		void queryNode(const std::size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
+			const std::size_t layerStart = layerStartIndex[layerIndex];
+			const std::size_t nodeIndex = layerStart + nodeOffset;
 			if (!queryEnvelope.intersects(nodeBounds[nodeIndex])) return;
 			if (layerIndex == 0) {
-				const size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
+				const std::size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
 				queryItems(childNodesOffset, queryEnvelope, removeList);
 			} else {
-				const size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
+				const std::size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
 				queryNodeChildren(layerIndex - 1, childNodesOffset, queryEnvelope, removeList);
 			}
 		}
@@ -254,16 +254,16 @@ namespace J {
 		~HPRTree() {
 			delete[] nodeBounds;
 		}
-		void reserve(const size_t& size) {
+		void reserve(const std::size_t& size) {
 			items.reserve(size);
 		}
 		void query(const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			if (!extent.intersects(queryEnvelope)) return;
 
-			const size_t layerIndex = layerStartIndex.size() - 2;
-			const size_t layerSize = getLayerSize(layerIndex);
+			const std::size_t layerIndex = layerStartIndex.size() - 2;
+			const std::size_t layerSize = getLayerSize(layerIndex);
 
-			for (size_t i = 0; i < layerSize; i++) {
+			for (std::size_t i = 0; i < layerSize; i++) {
 				queryNode(layerIndex, i, queryEnvelope, removeList);
 			}
 		}
@@ -273,6 +273,12 @@ namespace J {
 		}
 		double avgEntries() {	// maybe something like this makes sense to guesstimate how many entries are in a given envelope?
 			return items.size() / (extent.height() * extent.width());
+		}
+		std::size_t currentSizeInBytes() {
+			return sizeof(std::size_t) * layerStartIndex.capacity() + \
+				sizeof(item) * items.capacity()+\
+				sizeof(Envelope<coordType>)+\
+				sizeof(Envelope<coordType>)*layerStartIndex[layerStartIndex.size() - 1];
 		}
 		void build(const bool shrinkToFit = false) {
 
@@ -284,7 +290,7 @@ namespace J {
 
 			//layerStartIndex.shrink_to_fit();	//propably not a good idea as relatively small
 
-			const size_t nodeCount = layerStartIndex[layerStartIndex.size() - 1];
+			const std::size_t nodeCount = layerStartIndex[layerStartIndex.size() - 1];
 
 			nodeBounds = new Envelope<coordType>[nodeCount];
 
