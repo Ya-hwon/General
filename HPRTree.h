@@ -2,7 +2,6 @@
 
 #include "RemoveList.h"
 #include "external/hilbert_curves.h"
-#include "Timer.h"
 #include <limits>
 #include <vector>
 #include <mutex>
