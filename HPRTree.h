@@ -1,13 +1,11 @@
-#pragma once
+#ifndef JHPRTree
+#define JHPRTree
 
 #include "RemoveList.h"
 #include "external/hilbert_curves.h"
 #include <limits>
 #include <vector>
 #include <mutex>
-
-#ifndef JHPRTree
-#define JHPRTree
 
 namespace J {
 
@@ -250,6 +248,9 @@ namespace J {
 
 	public:
 		HPRTree() : nodeBounds(nullptr) {}
+		HPRTree(const std::size_t& capacity) : nodeBounds(nullptr) {
+			items.reserve(capacity);
+		}
 		~HPRTree() {
 			delete[] nodeBounds;
 		}

@@ -1,9 +1,7 @@
-#pragma once
-
-#include <functional>
-
 #ifndef JRemoveList
 #define JRemoveList
+
+#include <functional>
 
 namespace J {
 
