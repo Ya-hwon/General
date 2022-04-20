@@ -2,6 +2,7 @@
 #define JRemoveList
 
 #include <functional>
+#include <cassert>
 
 namespace J {
 
@@ -24,7 +25,7 @@ namespace J {
 			delete[] data;
 		}
 		RemoveList(const size_t& size) : _capacity(size), _size(0), writeIndex(0), data(new elem[size]), first(data), previous(data) {
-
+			assert(size != 0);
 		}
 		void add(const T& value) {
 			if constexpr (resizable) {
@@ -87,6 +88,7 @@ namespace J {
 			for (size_t i = 0; current != nullptr; current = current->next, i++) {
 				outArray[i] = current->data;
 			}
+			return outArray;
 		}
 	};
 
