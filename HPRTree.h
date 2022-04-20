@@ -163,7 +163,7 @@ namespace J {
 
 				if (indexlhs < indexrhs) return true;
 				return false;
-			});
+				});
 		}
 
 		void computeLeafNodes() {
@@ -271,14 +271,17 @@ namespace J {
 			items.push_back({ geom, elem });
 			extent.expandToInclude(geom);
 		}
-		double avgEntries() {	// maybe something like this makes sense to guesstimate how many entries are in a given envelope?
+		double avgEntries() const {
 			return items.size() / (extent.height() * extent.width());
 		}
-		std::size_t currentSizeInBytes() {
-			return sizeof(std::size_t) * layerStartIndex.capacity() + \
-				sizeof(item) * items.capacity()+\
-				sizeof(Envelope<coordType>)+\
-				sizeof(Envelope<coordType>)*layerStartIndex[layerStartIndex.size() - 1];
+		std::size_t currentSizeInBytes() const {
+			return sizeof(std::size_t) * layerStartIndex.capacity() +
+				sizeof(item) * items.capacity() +
+				sizeof(Envelope<coordType>) +
+				sizeof(Envelope<coordType>) * layerStartIndex[layerStartIndex.size() - 1];
+		}
+		std::size_t size() const {
+			return items.size();
 		}
 		void build(const bool shrinkToFit = false) {
 
@@ -288,7 +291,7 @@ namespace J {
 
 			computeLayerStartIndices();
 
-			//layerStartIndex.shrink_to_fit();	//propably not a good idea as relatively small
+			//if (shrinkToFit)layerStartIndex.shrink_to_fit();	//propably not a good idea as relatively small
 
 			const std::size_t nodeCount = layerStartIndex[layerStartIndex.size() - 1];
 
