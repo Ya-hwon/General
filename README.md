@@ -1,6 +1,12 @@
 # General
 A collection of generally useful snippets
 
+To run tests do the following:
+cmake -S . -B build
+cmake --build build
+cd build
+ctest
+
 ## What is in each File and how do I use it?
 
 ### Timer.h
