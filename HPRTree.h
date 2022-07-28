@@ -9,14 +9,9 @@
 
 namespace J {
 
-	template <typename T>
-	constexpr T constexpr_pow(T num, std::size_t pow) {
-		return pow == 0 ? 1 : num * constexpr_pow(num, pow - 1);
-	}
-
 	constexpr std::size_t NODE_CAPACITY = 16;
 	constexpr std::size_t HILBERT_LEVEL = 12;
-	constexpr std::size_t H = constexpr_pow(2, HILBERT_LEVEL) - 1;
+	constexpr std::size_t H = (1 << HILBERT_LEVEL) - 1;
 
 	typedef double defaultCoordType;
 
@@ -237,11 +232,10 @@ namespace J {
 			const std::size_t layerStart = layerStartIndex[layerIndex];
 			const std::size_t nodeIndex = layerStart + nodeOffset;
 			if (!queryEnvelope.intersects(nodeBounds[nodeIndex])) return;
+			const std::size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
 			if (layerIndex == 0) {
-				const std::size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
 				queryItems(childNodesOffset, queryEnvelope, removeList);
 			} else {
-				const std::size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
 				queryNodeChildren(layerIndex - 1, childNodesOffset, queryEnvelope, removeList);
 			}
 		}
@@ -271,6 +265,7 @@ namespace J {
 			items.push_back({ geom, elem });
 			extent.expandToInclude(geom);
 		}
+
 		double avgEntries() const {
 			return items.size() / (extent.height() * extent.width());
 		}
