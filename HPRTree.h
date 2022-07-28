@@ -23,27 +23,27 @@ namespace J {
 
 		}
 
-		numberType minX() const {
+		numberType minx() const {
 			return x;
 		}
 
-		numberType maxX() const {
+		numberType maxx() const {
 			return x;
 		}
 
-		numberType minY() const {
+		numberType miny() const {
 			return y;
 		}
 
-		numberType maxY() const {
+		numberType maxy() const {
 			return y;
 		}
 
-		numberType midX() const {
+		numberType midx() const {
 			return x;
 		}
 
-		numberType midY() const {
+		numberType midy() const {
 			return y;
 		}
 	};
@@ -56,7 +56,7 @@ namespace J {
 
 		}
 
-		Envelope(const numberType& minX, const numberType& maxX, const numberType& minY, const numberType& maxY) : _minX(minX), _maxX(maxX), _minY(minY), _maxY(maxY) {
+		Envelope(const numberType& minx, const numberType& maxx, const numberType& miny, const numberType& maxy) : _minX(minx), _maxX(maxx), _minY(miny), _maxY(maxy) {
 
 		}
 
@@ -72,41 +72,41 @@ namespace J {
 			return !(other.x > _maxX || other.x < _minX || other.y > _maxY || other.y < _minY);
 		}
 
-		void expandToInclude(const Envelope<numberType>& other) {
+		void expand_to_include(const Envelope<numberType>& other) {
 			if (other._minX < _minX) _minX = other._minX;
 			if (other._maxX > _maxX) _maxX = other._maxX;
 			if (other._minY < _minY) _minY = other._minY;
 			if (other._maxY > _maxY) _maxY = other._maxY;
 		}
 
-		void expandToInclude(const Point<numberType>& other) {
+		void expand_to_include(const Point<numberType>& other) {
 			if (other.x < _minX) _minX = other.x;
 			if (other.x > _maxX) _maxX = other.x;
 			if (other.y < _minY) _minY = other.y;
 			if (other.y > _maxY) _maxY = other.y;
 		}
 
-		numberType minX() const {
+		numberType minx() const {
 			return _minX;
 		}
 
-		numberType maxX() const {
+		numberType maxx() const {
 			return _maxX;
 		}
 
-		numberType minY() const {
+		numberType miny() const {
 			return _minY;
 		}
 
-		numberType maxY() const {
+		numberType maxy() const {
 			return _maxY;
 		}
 
-		numberType midX() const {
+		numberType midx() const {
 			return _minX + width() / 2;
 		}
 
-		numberType midY() const {
+		numberType midy() const {
 			return _minY + height() / 2;
 		}
 
@@ -135,23 +135,23 @@ namespace J {
 		std::vector<size_t> layerStartIndex;
 		Envelope<coordType>* nodeBounds;
 
-		size_t getLayerSize(const size_t& layerIndex) const {
+		size_t get_layer_size(const size_t& layerIndex) const {
 			return layerStartIndex[layerIndex + 1] - layerStartIndex[layerIndex];
 		}
 
-		void sortItems() {
+		void sort_items() {
 			const coordType strideX = extent.width() / H;
 			const coordType strideY = extent.height() / H;
 
-			const coordType extentMinX = extent.minX();
+			const coordType extentMinX = extent.minx();
 
 			std::sort(items.begin(), items.end(), [&](const item& lhs, const item& rhs) {
 
-				const int xlhs = (int)((lhs.geom.midX() - extentMinX) / strideX);
-				const int ylhs = (int)((lhs.geom.midY() - extentMinX) / strideY);
+				const int xlhs = (int)((lhs.geom.midx() - extentMinX) / strideX);
+				const int ylhs = (int)((lhs.geom.midy() - extentMinX) / strideY);
 
-				const int xrhs = (int)((rhs.geom.midX() - extentMinX) / strideX);
-				const int yrhs = (int)((rhs.geom.midY() - extentMinX) / strideY);
+				const int xrhs = (int)((rhs.geom.midx() - extentMinX) / strideX);
+				const int yrhs = (int)((rhs.geom.midy() - extentMinX) / strideY);
 
 				const int indexlhs = hilbertXYToIndex(HILBERT_LEVEL, xlhs, ylhs);
 				const int indexrhs = hilbertXYToIndex(HILBERT_LEVEL, xrhs, yrhs);
@@ -161,34 +161,34 @@ namespace J {
 				});
 		}
 
-		void computeLeafNodes() {
+		void compute_leaf_nodes() {
 			for (std::size_t i = 0; i < layerStartIndex[1]; i++) {
 				for (std::size_t j = 0; j <= NODE_CAPACITY; j++) {
 					const std::size_t itemIndex = NODE_CAPACITY * i + j;
 					if (itemIndex >= items.size()) return;
-					nodeBounds[i].expandToInclude(items[itemIndex].geom);
+					nodeBounds[i].expand_to_include(items[itemIndex].geom);
 				}
 			}
 		}
 
-		void computeLayerNodes() {
+		void compute_layer_nodes() {
 			for (std::size_t i = 1; i < layerStartIndex.size() - 1; i++) {
 				const std::size_t layerStart = layerStartIndex[i];
 				const std::size_t childLayerStart = layerStartIndex[i - 1];
-				const std::size_t layerSize = getLayerSize(i);
+				const std::size_t layerSize = get_layer_size(i);
 				const std::size_t childLayerEnd = layerStart;
 				for (std::size_t j = 0; j < layerSize; j++) {
 					const std::size_t childStart = childLayerStart + NODE_CAPACITY * j;
 					for (std::size_t k = 0; k <= NODE_CAPACITY; k++) {
 						const std::size_t index = childStart + k;
 						if (index >= childLayerEnd) break;
-						nodeBounds[layerStart + j].expandToInclude(nodeBounds[index]);
+						nodeBounds[layerStart + j].expand_to_include(nodeBounds[index]);
 					}
 				}
 			}
 		}
 
-		void computeLayerStartIndices() {
+		void compute_layer_start_indices() {
 
 			std::size_t itemCount = items.size();
 			std::size_t index = 0;
@@ -207,17 +207,17 @@ namespace J {
 			} while (itemCount > 1);	// log16(itemCount) indices
 		}
 
-		void queryNodeChildren(const std::size_t& layerIndex, const std::size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
+		void query_node_children(const std::size_t& layerIndex, const std::size_t& blockOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			const std::size_t layerStart = layerStartIndex[layerIndex];
 			const std::size_t layerEnd = layerStartIndex[layerIndex + 1];
 			for (int i = 0; i < NODE_CAPACITY; i++) {
 				const std::size_t nodeOffset = blockOffset + i;
 				if (layerStart + nodeOffset >= layerEnd) return;
-				queryNode(layerIndex, nodeOffset, queryEnvelope, removeList);
+				query_node(layerIndex, nodeOffset, queryEnvelope, removeList);
 			}
 		}
 
-		void queryItems(const std::size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
+		void query_items(const std::size_t& blockStart, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			for (std::size_t i = 0; i < NODE_CAPACITY; i++) {
 				const std::size_t itemIndex = blockStart + i;
 				if (itemIndex >= items.size()) return;
@@ -228,15 +228,15 @@ namespace J {
 			}
 		}
 
-		void queryNode(const std::size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
+		void query_node(const std::size_t& layerIndex, const size_t& nodeOffset, const Envelope<coordType>& queryEnvelope, RemoveList<elemType, true>& removeList) const {
 			const std::size_t layerStart = layerStartIndex[layerIndex];
 			const std::size_t nodeIndex = layerStart + nodeOffset;
 			if (!queryEnvelope.intersects(nodeBounds[nodeIndex])) return;
 			const std::size_t childNodesOffset = nodeOffset * NODE_CAPACITY;
 			if (layerIndex == 0) {
-				queryItems(childNodesOffset, queryEnvelope, removeList);
+				query_items(childNodesOffset, queryEnvelope, removeList);
 			} else {
-				queryNodeChildren(layerIndex - 1, childNodesOffset, queryEnvelope, removeList);
+				query_node_children(layerIndex - 1, childNodesOffset, queryEnvelope, removeList);
 			}
 		}
 
@@ -255,21 +255,21 @@ namespace J {
 			if (!extent.intersects(queryEnvelope)) return;
 
 			const std::size_t layerIndex = layerStartIndex.size() - 2;
-			const std::size_t layerSize = getLayerSize(layerIndex);
+			const std::size_t layerSize = get_layer_size(layerIndex);
 
 			for (std::size_t i = 0; i < layerSize; i++) {
-				queryNode(layerIndex, i, queryEnvelope, removeList);
+				query_node(layerIndex, i, queryEnvelope, removeList);
 			}
 		}
 		void add(const elemType& elem, const indexGeom& geom) {
 			items.push_back({ geom, elem });
-			extent.expandToInclude(geom);
+			extent.expand_to_include(geom);
 		}
 
-		double avgEntries() const {
+		double avg_entries() const {
 			return items.size() / (extent.height() * extent.width());
 		}
-		std::size_t currentSizeInBytes() const {
+		std::size_t current_size_bytes() const {
 			return sizeof(std::size_t) * layerStartIndex.capacity() +
 				sizeof(item) * items.capacity() +
 				sizeof(Envelope<coordType>) +
@@ -282,9 +282,9 @@ namespace J {
 
 			if (shrinkToFit)items.shrink_to_fit();	// might make sense as potentially very big
 
-			sortItems();
+			sort_items();
 
-			computeLayerStartIndices();
+			compute_layer_start_indices();
 
 			//if (shrinkToFit)layerStartIndex.shrink_to_fit();	//propably not a good idea as relatively small
 
@@ -292,8 +292,8 @@ namespace J {
 
 			nodeBounds = new Envelope<coordType>[nodeCount];
 
-			computeLeafNodes();
-			computeLayerNodes();
+			compute_leaf_nodes();
+			compute_layer_nodes();
 		}
 	};
 }

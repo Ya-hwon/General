@@ -34,7 +34,7 @@ namespace J {
 					elem* newdata = new elem[_capacity];
 					size_t index = 0;
 					for (elem* current = first; current != nullptr; current = current->next, index++) {
-						newdata[index].data = current->data;
+						newdata[index].data = std::move(current->data);
 						newdata[index].next = newdata + index + 1;
 					}
 					previous = &newdata[index - 1];
@@ -49,7 +49,7 @@ namespace J {
 			data[writeIndex++].data = value;
 			_size++;
 		}
-		void removeIf(const std::function<bool(const T&)>& filter) {
+		void remove_if(const std::function<bool(const T&)>& filter) {
 			if (_size == 0)return;
 
 			while (filter(first->data)) {
@@ -69,7 +69,7 @@ namespace J {
 			return;
 		}
 
-		void forEach(const std::function<void(T&)> function) {
+		void for_each(const std::function<void(T&)> function) {
 			if (_size == 0)return;
 			for (elem* current = first; current != nullptr; current = current->next) {
 				function(current->data);
@@ -81,7 +81,7 @@ namespace J {
 		size_t size() const {
 			return _size;
 		}
-		[[nodiscard]] T* toArray() const {
+		[[nodiscard]] T* to_array() const {
 			if (_size == 0)return nullptr;
 			T* outArray = new T[_size];
 			elem* current = first;

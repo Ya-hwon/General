@@ -35,8 +35,8 @@ RemoveList<size_t, false> removeList(30'000);
 for (size_t i = 0; i < 30'000; i++) {
 	removeList.add(i);
 }
-removeList.removeIf([](const size_t& elem) { return elem % 2; });
-removeList.forEach([](const size_t& elem) { std::cout << elem; });
+removeList.remove_if([](const size_t& elem) { return elem % 2; });
+removeList.for_each([](const size_t& elem) { std::cout << elem; });
 ```
 
 Exemplary output: 
