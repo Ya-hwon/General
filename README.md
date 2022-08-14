@@ -35,30 +35,6 @@ doSomething stopped after 63milliseconds 154microseconds 300nanoseconds
 
 The timer also has a pause and a resume function as well as manual start and stop functions (by default this is done at con- and destruction) and the option to directly get the nanoseconds.
 
-### RemoveList.h
-
-This is intended to be used as a candidate list which is then reduced based on some criterium. 
-
-Can be used as follows:
-
-```cpp
-RemoveList<size_t, false> removeList(30'000);
-for (size_t i = 0; i < 30'000; i++) {
-	removeList.add(i);
-}
-removeList.remove_if([](const size_t& elem) { return elem % 2; });
-removeList.for_each([](const size_t& elem) { std::cout << elem; });
-```
-
-Exemplary output: 
-```
-imagine a sizable block of numbers here
-```
-
-#### Ok, but why?
-
-Usually one would probably use a linked list for this but those require one (de)allocation per element, which I don't like (because it's slow) so I made this single (de)allocation (forward) linked list (well in the best case anyway) - works best if the starting size of the collection can be estimated at construction (because then I don't have to get more memory, copy all of the existing data and free the old memory), can be even faster if the use case guarantees that there won't be more elements than anticipated.
-
 ### HPRTree.h
 
 A spatial index, based on JTS's Java version, based on the space-filling hilbert curve. The code that handles the curves themselves was not written by me and can be found on [GitHub](https://github.com/rawrunprotected/hilbert_curves).
@@ -81,7 +57,7 @@ for(auto& elem : dataSource){
 
 tree.build();
 
-RemoveList<city, true> candidates(5000);
+std::vector<city> candidates(5000);
 tree.query({ -80, 80, -80, 80 }, candidates); 
 
 // 'candidates' now holds all previously inserted elements within the query envelope
